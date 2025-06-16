@@ -1,3 +1,5 @@
+require('./config/dotenv');
+
 const express = require('express');
 const disasterRoutes = require('./routes/disasterRoutes');
 const shelterRoutes = require('./routes/shelterRoutes');
