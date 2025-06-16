@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ToastContainer } from 'react-toastify'; // Import ToastContainer
+import { ToastContainer, toast } from 'react-toastify'; // Import toast
 import 'react-toastify/dist/ReactToastify.css'; // Import the toastify CSS
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
@@ -36,6 +36,8 @@ function App() {
   const [allDisasters, setAllDisasters] = useState([]);
 
   const loadDisasters = async () => {
+    setLoading(true);
+    setError(null); // Reset error state before fetching
     try {
       const disasterData = await fetchAllDisasters();
       setDisasters(disasterData);
@@ -45,7 +47,9 @@ function App() {
       setOngoingAndNew(ongoingAndNewDisasters);
       setAllDisasters(disasterData);
     } catch (err) {
-      setError('Failed to load disasters');
+      const errorMessage = err.message || 'Failed to load disasters. Some features might be unavailable.';
+      setError(errorMessage);
+      // toast.error(errorMessage); // Consider removing toast here if HomePage handles error display
     } finally {
       setLoading(false);
     }
@@ -56,26 +60,17 @@ function App() {
   }, []);
 
   const refreshDisasters = () => {
-    setLoading(true);
     loadDisasters();
   };
-
-  if (loading) {
-    return <div>Loading disasters...</div>;
-  }
-
-  if (error) {
-    return <div>{error}</div>;
-  }
 
   return (
     <Router>
       <div className="flex flex-col min-h-screen">
         <Navbar />
-        <ScrollingAlert alerts={ongoingAndNew} />
+        <ScrollingAlert alerts={ongoingAndNew} isLoading={loading} error={error} />
         <main className="flex-grow">
           <Routes>
-            <Route path="/disaster-feed" element={<DisasterFeed disasters={allDisasters} refreshDisasters={refreshDisasters} />} />
+            <Route path="/disaster-feed" element={<DisasterFeed disasters={allDisasters} refreshDisasters={refreshDisasters} isLoadingInitial={loading} initialError={error} />} />
             <Route path="/shelter" element={<ShelterPage />} />
             <Route path="/hospital/:hospitalId" element={<HomeHospital />} />
             <Route path="/shelter/:shelterId" element={<HomeShelter />} />
@@ -86,7 +81,7 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/donate" element={<DonatePage/>} />
             <Route path='/volunteer' element={<VolunteerPage/>} />
-            <Route path='/' element={<HomePage/>} />
+            <Route path='/' element={<HomePage disasters={ongoingAndNew} isLoading={loading} error={error} />} />
 
             {/* Dashboard route, redirects based on role */}
             <Route

@@ -7,7 +7,7 @@ const VolunteerMap = ({ opportunities }) => {
 
   // Load Google Maps API using the `useJsApiLoader` hook
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: 'AIzaSyC3kS8EwCqU9WChVAKDzehb39HPm2IxJXo', // Use your own API key
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
   });
 
   // Set default center and zoom level for the map

@@ -5,7 +5,7 @@ import DisasterCard from '../components/DisasterFeed/DisasterCard';
 import MapView from '../components/DisasterFeed/Mapview';
 import DisasterModal from '../components/DisasterFeed/DisasterModal'; // Import the modal component
 
-const DisasterFeed = ({ disasters, refreshDisasters }) => {
+const DisasterFeed = ({ disasters, refreshDisasters, isLoadingInitial, initialError }) => {
   const [isMapView, setIsMapView] = useState(true);
   const [weather, setWeather] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(true);
@@ -15,7 +15,7 @@ const DisasterFeed = ({ disasters, refreshDisasters }) => {
     severity: "All",
     status: "All",
   });
-  const [loadingDisasters, setLoadingDisasters] = useState(false);
+  const [loadingDisasters, setLoadingDisasters] = useState(false); // Internal loading state for filters etc.
   const [selectedDisaster, setSelectedDisaster] = useState(null); // Track selected disaster for modal
 
   // Fetch weather data based on user latitude and longitude
@@ -60,6 +60,7 @@ const DisasterFeed = ({ disasters, refreshDisasters }) => {
 
   // Filter disasters based on selected filters
   const displayedDisasters = useMemo(() => {
+    if (!disasters) return []; // Handle null or undefined disasters
     return disasters.filter((disaster) => {
       const typeMatch = filters.type === "All" || disaster.type === filters.type;
       const severityMatch = filters.severity === "All" || disaster.severity === filters.severity;
@@ -81,7 +82,7 @@ const DisasterFeed = ({ disasters, refreshDisasters }) => {
   return (
     <div className="disaster-feed-page flex flex-col min-h-screen m-4 bg-gray-light">
       <Header
-        disasters={disasters}
+        disasters={disasters || []} // Ensure disasters is an array
         setIsMapView={setIsMapView}
         isMapView={isMapView}
         refreshFeed={refreshDisasters}
@@ -92,36 +93,57 @@ const DisasterFeed = ({ disasters, refreshDisasters }) => {
       />
 
       <div className="flex flex-row mt-4">
-        {/* MapView */}
-        <div
-          className={`map-view flex-1 overflow-y-auto p-4 ${isMapView ? 'block' : 'hidden'}`}
-          style={{ height: '80vh' }}
-        >
-          <MapView disasters={displayedDisasters} userLocation={userLocation} />
-        </div>
-
-        {/* List view */}
-        <div
-          className={`list-view flex-1 grid gap-4 p-4 ${!isMapView ? 'block' : 'hidden'}`}
-          style={{
-            overflowY: 'hidden',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-            gridAutoRows: 'auto',
-          }}
-        >
-          {loadingDisasters ? (
-            <p className="text-teal">Loading disasters...</p>
-          ) : displayedDisasters.length === 0 ? (
-            <p className="text-teal">No disasters data available.</p>
-          ) : (
-            displayedDisasters.map((disaster, index) => (
-              <div
-                key={index}
-                className="transition-all duration-300 ease-in-out transform hover:scale-105 hover:rounded-lg"
+        {/* Main content area for map or list */}
+        <div className="flex-1 overflow-y-auto p-4" style={{ height: '80vh' }}>
+          {isLoadingInitial ? (
+            <p className="text-teal text-center py-10">Loading initial disaster data...</p>
+          ) : initialError && (!disasters || disasters.length === 0) ? (
+            <div className="text-center py-10">
+              <p className="text-red-500 text-xl">Error: {initialError}</p>
+              <p className="text-gray-600">Could not load disaster feed. Please try again later.</p>
+              <button
+                onClick={refreshDisasters}
+                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
-                <DisasterCard disaster={disaster} onCardClick={handleCardClick} />
-              </div>
-            ))
+                Retry
+              </button>
+            </div>
+          ) : (
+            <>
+              {isMapView ? (
+                <MapView disasters={displayedDisasters} userLocation={userLocation} />
+              ) : (
+                <div
+                  className="list-view grid gap-4"
+                  style={{
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                    gridAutoRows: 'auto',
+                  }}
+                >
+                  {loadingDisasters ? ( 
+                    <p className="text-teal col-span-full text-center">Applying filters...</p>
+                  ) : displayedDisasters.length === 0 ? (
+                    <p className="text-teal col-span-full text-center">
+                      {initialError ? "Disaster data currently unavailable." : "No disasters match current filters or no data available."}
+                    </p>
+                  ) : (
+                    displayedDisasters.map((disaster, index) => (
+                      <div
+                        key={disaster.id || index} // Use disaster.id if available
+                        className="transition-all duration-300 ease-in-out transform hover:scale-105 hover:rounded-lg"
+                      >
+                        <DisasterCard disaster={disaster} onCardClick={handleCardClick} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+              {initialError && disasters && disasters.length > 0 && (
+                 <p className="text-red-500 text-center p-2">
+                   There was an error fetching the latest disaster data. Displaying potentially stale or incomplete information.
+                 </p>
+              )}
+            </>
           )}
         </div>
 
@@ -130,8 +152,8 @@ const DisasterFeed = ({ disasters, refreshDisasters }) => {
           className="weather-widget-container flex-shrink-0 p-4 w-64 text-white rounded-lg "
           style={{
             position: 'sticky',
-            top: '20px',
-            height: 'calc(80vh - 10px)',
+            top: '20px', 
+            height: 'calc(80vh - 10px)', 
           }}
         >
           {loadingWeather ? (

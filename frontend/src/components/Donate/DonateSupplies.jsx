@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from "@react-google-maps/api";
 
-const BASE_URL = "http://localhost:5000/api";
+// Use environment variable for API URL
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const mapContainerStyle = {
   width: "100%",
@@ -164,7 +165,10 @@ const DonateSupplies = ({ onSuppliesUpdate }) => {
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
 
-  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: "AIzaSyC3kS8EwCqU9WChVAKDzehb39HPm2IxJXo" });
+  // Update Google Maps API key
+  const { isLoaded } = useJsApiLoader({ 
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyC3kS8EwCqU9WChVAKDzehb39HPm2IxJXo" 
+  });
 
   useEffect(() => {
     const fetchLocations = async () => {
